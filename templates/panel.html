@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Device Monitor</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #050505;
+            color: #d7d7d7;
+            font-family: Consolas, "Courier New", monospace;
+            min-height: 100vh;
+        }
+
+        .terminal {
+            max-width: 1250px;
+            margin: 30px auto;
+            border: 1px solid #333;
+            background: #080808;
+            box-shadow: 0 0 35px rgba(0, 0, 0, .8);
+        }
+
+        .topbar {
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: #111;
+            border-bottom: 1px solid #333;
+        }
+
+        .title {
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: #f0f0f0;
+        }
+
+        .status {
+            color: #9cff9c;
+            font-size: 12px;
+        }
+
+        .content {
+            padding: 28px;
+        }
+
+        .command {
+            color: #8f8f8f;
+            margin-bottom: 28px;
+        }
+
+        .prompt {
+            color: #9cff9c;
+        }
+
+        .section-title {
+            color: #fff;
+            font-size: 14px;
+            margin-bottom: 14px;
+            letter-spacing: 1px;
+        }
+
+        .line {
+            border-top: 1px solid #252525;
+            margin-bottom: 22px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 35px;
+        }
+
+        .stat {
+            border: 1px solid #292929;
+            background: #0c0c0c;
+            padding: 20px;
+        }
+
+        .stat-label {
+            color: #777;
+            font-size: 11px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            color: #fff;
+            font-size: 26px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #292929;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        th {
+            text-align: left;
+            background: #111;
+            color: #8f8f8f;
+            font-size: 11px;
+            padding: 14px;
+            border-bottom: 1px solid #333;
+            font-weight: normal;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid #1d1d1d;
+            font-size: 12px;
+            color: #cfcfcf;
+        }
+
+        tr:hover td {
+            background: #111;
+        }
+
+        .id {
+            color: #8f8f8f;
+        }
+
+        .online {
+            color: #9cff9c;
+        }
+
+        .empty {
+            text-align: center;
+            color: #666;
+            padding: 35px;
+        }
+
+        .footer {
+            margin-top: 25px;
+            color: #555;
+            font-size: 11px;
+        }
+
+        @media (max-width: 700px) {
+            .terminal {
+                margin: 0;
+                border-left: 0;
+                border-right: 0;
+            }
+
+            .content {
+                padding: 18px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="terminal">
+
+    <div class="topbar">
+        <div class="title">DEVICE MONITOR // ADMIN PANEL</div>
+        <div class="status">● ONLINE</div>
+    </div>
+
+    <div class="content">
+
+        <div class="command">
+            <span class="prompt">PS&gt;</span>
+            get-authorized-sessions
+        </div>
+
+        <div class="section-title">
+            SYSTEM OVERVIEW
+        </div>
+
+        <div class="line"></div>
+
+        <div class="stats">
+
+            <div class="stat">
+                <div class="stat-label">AUTHORIZED SESSIONS</div>
+                <div class="stat-value">
+                    {{ sesiones|length }}
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">RECORDED DEVICES</div>
+                <div class="stat-value">
+                    {{ sesiones|length }}
+                </div>
+            </div>
+
+            <div class="stat">
+                <div class="stat-label">SERVER STATUS</div>
+                <div class="stat-value online">
+                    READY
+                </div>
+            </div>
+
+        </div>
+
+        <div class="section-title">
+            RECENT AUTHORIZED SESSIONS
+        </div>
+
+        <div class="line"></div>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>DATE / TIME</th>
+                        <th>SYSTEM</th>
+                        <th>BROWSER</th>
+                        <th>SCREEN</th>
+                        <th>LANGUAGE</th>
+                        <th>TIMEZONE</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% if sesiones %}
+
+                        {% for sesion in sesiones %}
+
+                        <tr>
+                            <td class="id">
+                                #{{ "%03d"|format(loop.index) }}
+                            </td>
+
+                            <td>{{ sesion.fecha }}</td>
+                            <td>{{ sesion.sistema }}</td>
+                            <td>{{ sesion.navegador }}</td>
+                            <td>{{ sesion.pantalla }}</td>
+                            <td>{{ sesion.idioma }}</td>
+                            <td>{{ sesion.zona_horaria }}</td>
+                        </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+                            <td colspan="7" class="empty">
+                                NO AUTHORIZED SESSIONS FOUND
+                            </td>
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <div class="footer">
+            DEVICE MONITOR / LOCAL DEMONSTRATION / AUTHORIZED DATA ONLY
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
