@@ -4,16 +4,29 @@ from datetime import datetime
 
 app = Flask(__name__)
 
+# ============================================================
+# CONFIGURACIÓN
+# ============================================================
+
 app.secret_key = os.environ.get(
     "FLASK_SECRET_KEY",
     "clave-secreta-demo"
 )
 
+# La contraseña SOLO protege tu panel.
 ACCESS_KEY = os.environ.get(
     "PANEL_ACCESS_KEY",
     "DEMO-2026-ACCESS"
 )
 
+# Sesiones autorizadas recibidas por el servidor.
+# Se mantienen mientras el servidor esté funcionando.
+authorized_devices = []
+
+
+# ============================================================
+# PÁGINA DE ACCESO AL PANEL
+# ============================================================
 
 LOGIN_PAGE = """
 <!DOCTYPE html>
@@ -138,13 +151,17 @@ button:hover{background:white}
 """
 
 
+# ============================================================
+# PÁGINA DE AUTORIZACIÓN
+# ============================================================
+
 CONSENT_PAGE = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Diagnostic Authorization</title>
+<title>Device Verification</title>
 
 <style>
 *{box-sizing:border-box}
@@ -167,6 +184,7 @@ body{
     border:1px solid #292f35;
     border-radius:8px;
     padding:32px;
+    box-shadow:0 25px 70px rgba(0,0,0,.45);
 }
 
 .top{
@@ -200,7 +218,9 @@ p{
     font-size:13px;
 }
 
-.item:last-child{border-bottom:0}
+.item:last-child{
+    border-bottom:0;
+}
 
 button{
     width:100%;
@@ -230,11 +250,11 @@ button{
 
 <div class="top">DEVICE SERVICE / AUTHORIZATION</div>
 
-<h1>Diagnostic information access</h1>
+<h1>Device verification</h1>
 
 <p>
-This diagnostic session can display information provided by your browser.
-Please review the information before continuing.
+To continue, you can authorize this page to share basic technical
+information from your browser for device compatibility verification.
 </p>
 
 <div class="list">
@@ -242,21 +262,26 @@ Please review the information before continuing.
 <div class="item">• Browser language</div>
 <div class="item">• Time zone and local time</div>
 <div class="item">• Screen resolution</div>
-<div class="item">• Browser and device information</div>
+<div class="item">• Browser and platform information</div>
+<div class="item">• Number of available CPU cores</div>
 <div class="item">• Battery level, when supported by your browser</div>
 
 </div>
 
 <p>
-No email address is collected automatically. You may close this page
-at any time.
+No email address, files, passwords, camera, microphone, contacts,
+or precise location are collected by this diagnostic.
 </p>
 
 <form method="POST" action="/authorize">
-<button type="submit">ALLOW DIAGNOSTIC INFORMATION</button>
+<button type="submit">
+ALLOW DIAGNOSTIC INFORMATION
+</button>
 </form>
 
-<a class="cancel" href="/logout">CANCEL AND EXIT</a>
+<a class="cancel" href="/logout">
+CANCEL AND EXIT
+</a>
 
 </div>
 
@@ -264,6 +289,10 @@ at any time.
 </html>
 """
 
+
+# ============================================================
+# PÁGINA DEL PANEL
+# ============================================================
 
 PANEL_PAGE = """
 <!DOCTYPE html>
@@ -276,7 +305,10 @@ PANEL_PAGE = """
 <title>Device Diagnostics</title>
 
 <style>
-*{box-sizing:border-box}
+
+*{
+    box-sizing:border-box
+}
 
 body{
     margin:0;
@@ -339,50 +371,43 @@ h1{
     margin-bottom:28px;
 }
 
-.grid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:16px;
-}
-
-.card{
+.session{
     background:#0e1114;
     border:1px solid #242a2f;
     border-radius:7px;
-    padding:22px;
-}
-
-.large{
-    grid-column:span 2;
-}
-
-.full{
-    grid-column:1/-1;
-}
-
-.title{
-    color:#737c84;
-    font-size:10px;
-    letter-spacing:1.8px;
     margin-bottom:18px;
+    overflow:hidden;
 }
 
-.device{
-    font-size:22px;
-    margin-bottom:8px;
+.session-header{
+    padding:18px 20px;
+    border-bottom:1px solid #242a2f;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
 
-.muted{
-    color:#69727a;
-    font-size:11px;
+.session-title{
+    font-size:12px;
+    letter-spacing:1.5px;
+}
+
+.authorized{
+    color:#82c998;
+    font-size:10px;
+}
+
+.rows{
+    padding:5px 20px 15px;
 }
 
 .row{
     display:flex;
     justify-content:space-between;
-    padding:12px 0;
+    padding:13px 0;
     border-bottom:1px solid #1d2226;
     font-size:12px;
+    gap:20px;
 }
 
 .row:last-child{
@@ -396,27 +421,42 @@ h1{
 .value{
     color:#d0d5d9;
     text-align:right;
-    max-width:60%;
+    max-width:70%;
     word-break:break-word;
 }
 
-.good{
-    color:#82c998;
+.empty{
+    background:#0e1114;
+    border:1px solid #242a2f;
+    border-radius:7px;
+    padding:35px;
+    text-align:center;
+    color:#69727a;
+    font-size:12px;
 }
 
-.log{
-    font-family:"Courier New",monospace;
-    color:#707980;
-    font-size:11px;
-    line-height:2;
+@media(max-width:700px){
+
+    header{
+        padding:0 18px;
+    }
+
+    .ready{
+        display:none;
+    }
+
+    .row{
+        flex-direction:column;
+        gap:5px;
+    }
+
+    .value{
+        max-width:100%;
+        text-align:left;
+    }
+
 }
 
-@media(max-width:800px){
-    .grid{grid-template-columns:1fr}
-    .large,.full{grid-column:span 1}
-    header{padding:0 18px}
-    .ready{display:none}
-}
 </style>
 </head>
 
@@ -424,260 +464,130 @@ h1{
 
 <header>
 
-<div class="logo">DEVICE SERVICE</div>
+<div class="logo">
+DEVICE SERVICE
+</div>
 
 <div class="right">
-<div class="ready">● AUTHORIZED SESSION</div>
-<a class="logout" href="/logout">LOG OUT</a>
+
+<div class="ready">
+● PANEL SECURE
+</div>
+
+<a class="logout" href="/logout">
+LOG OUT
+</a>
+
 </div>
 
 </header>
 
+
 <div class="container">
 
-<h1>System Diagnostics</h1>
+<h1>Authorized Device Sessions</h1>
 
 <div class="subtitle">
-Authorized device diagnostic environment
-</div>
-
-<div class="grid">
-
-<div class="card large">
-
-<div class="title">DEVICE OVERVIEW</div>
-
-<div class="device" id="deviceType">
-Detecting device...
-</div>
-
-<div class="muted" id="platform">
-Reading browser information...
-</div>
-
+Technical information voluntarily authorized by visitors
 </div>
 
 
-<div class="card">
+{% if devices %}
 
-<div class="title">SESSION</div>
+{% for device in devices %}
 
-<div class="row">
-<div class="label">STATUS</div>
-<div class="value good">AUTHORIZED</div>
+<div class="session">
+
+<div class="session-header">
+
+<div class="session-title">
+AUTHORIZED SESSION #{{ loop.index }}
 </div>
+
+<div class="authorized">
+● AUTHORIZED
+</div>
+
+</div>
+
+
+<div class="rows">
 
 <div class="row">
 <div class="label">ACCESS TIME</div>
-<div class="value" id="accessTime">—</div>
+<div class="value">{{ device.access_time }}</div>
 </div>
-
-</div>
-
-
-<div class="card">
-
-<div class="title">SYSTEM</div>
 
 <div class="row">
 <div class="label">LANGUAGE</div>
-<div class="value" id="language">—</div>
+<div class="value">{{ device.language }}</div>
 </div>
 
 <div class="row">
 <div class="label">TIME ZONE</div>
-<div class="value" id="timezone">—</div>
+<div class="value">{{ device.timezone }}</div>
+</div>
+
+<div class="row">
+<div class="label">LOCAL TIME</div>
+<div class="value">{{ device.local_time }}</div>
 </div>
 
 <div class="row">
 <div class="label">SCREEN</div>
-<div class="value" id="screen">—</div>
+<div class="value">{{ device.screen }}</div>
 </div>
-
-</div>
-
-
-<div class="card">
-
-<div class="title">BATTERY</div>
-
-<div class="row">
-<div class="label">STATUS</div>
-<div class="value" id="batteryStatus">Checking...</div>
-</div>
-
-<div class="row">
-<div class="label">LEVEL</div>
-<div class="value" id="batteryLevel">—</div>
-</div>
-
-</div>
-
-
-<div class="card large">
-
-<div class="title">BROWSER ENVIRONMENT</div>
 
 <div class="row">
 <div class="label">BROWSER</div>
-<div class="value" id="browser">—</div>
+<div class="value">{{ device.browser }}</div>
 </div>
 
 <div class="row">
 <div class="label">PLATFORM</div>
-<div class="value" id="platformFull">—</div>
+<div class="value">{{ device.platform }}</div>
 </div>
 
 <div class="row">
-<div class="label">CORES</div>
-<div class="value" id="cores">—</div>
+<div class="label">CPU CORES</div>
+<div class="value">{{ device.cores }}</div>
 </div>
 
-</div>
-
-
-<div class="card full">
-
-<div class="title">SERVICE LOG</div>
-
-<div class="log" id="log">
-
-<div>OK — Authorization confirmed</div>
-<div>OK — Diagnostic session initialized</div>
-<div>OK — Browser information received</div>
-<div>OK — System status ready</div>
-
+<div class="row">
+<div class="label">BATTERY</div>
+<div class="value">{{ device.battery }}</div>
 </div>
 
 </div>
 
 </div>
 
+{% endfor %}
+
+{% else %}
+
+<div class="empty">
+No authorized diagnostic sessions yet.
 </div>
 
+{% endif %}
 
-<script>
-
-function detectDevice(){
-
-    const ua = navigator.userAgent.toLowerCase();
-
-    let type = "Desktop / Unknown";
-
-    if (/android/.test(ua)){
-        type = "Android Device";
-    }
-    else if (/iphone|ipad|ipod/.test(ua)){
-        type = "Apple Mobile Device";
-    }
-    else if (/windows/.test(ua)){
-        type = "Windows Computer";
-    }
-    else if (/macintosh|mac os/.test(ua)){
-        type = "Mac Computer";
-    }
-    else if (/linux/.test(ua)){
-        type = "Linux Computer";
-    }
-
-    document.getElementById("deviceType").textContent = type;
-
-    document.getElementById("platform").textContent =
-        navigator.platform || "Not available";
-
-    document.getElementById("platformFull").textContent =
-        navigator.platform || "Not available";
-
-    document.getElementById("browser").textContent =
-        navigator.userAgent;
-
-    document.getElementById("cores").textContent =
-        navigator.hardwareConcurrency
-        ? navigator.hardwareConcurrency
-        : "Not available";
-}
-
-
-function systemInfo(){
-
-    document.getElementById("language").textContent =
-        navigator.language || "Not available";
-
-    document.getElementById("timezone").textContent =
-        Intl.DateTimeFormat().resolvedOptions().timeZone
-        || "Not available";
-
-    document.getElementById("screen").textContent =
-        window.screen.width + " × " + window.screen.height;
-
-    document.getElementById("accessTime").textContent =
-        new Date().toLocaleString();
-
-}
-
-
-async function batteryInfo(){
-
-    const status =
-        document.getElementById("batteryStatus");
-
-    const level =
-        document.getElementById("batteryLevel");
-
-    if (!navigator.getBattery){
-
-        status.textContent =
-            "Not supported";
-
-        level.textContent =
-            "Not available";
-
-        return;
-    }
-
-    try{
-
-        const battery =
-            await navigator.getBattery();
-
-        status.textContent =
-            battery.charging
-            ? "Charging"
-            : "Not charging";
-
-        level.textContent =
-            Math.round(battery.level * 100) + "%";
-
-    }catch(error){
-
-        status.textContent =
-            "Unavailable";
-
-        level.textContent =
-            "Not available";
-    }
-}
-
-
-detectDevice();
-systemInfo();
-batteryInfo();
-
-</script>
+</div>
 
 </body>
 </html>
 """
 
 
+# ============================================================
+# LOGIN DEL PANEL
+# ============================================================
+
 @app.route("/", methods=["GET", "POST"])
 def login():
 
     if session.get("authenticated"):
-        if session.get("authorized"):
-            return redirect(url_for("panel"))
-
-        return redirect(url_for("authorize"))
+        return redirect(url_for("panel"))
 
     error = False
 
@@ -688,9 +598,8 @@ def login():
         if entered_key == ACCESS_KEY:
 
             session["authenticated"] = True
-            session["authorized"] = False
 
-            return redirect(url_for("authorize"))
+            return redirect(url_for("panel"))
 
         error = True
 
@@ -700,44 +609,396 @@ def login():
     )
 
 
-@app.route("/authorize", methods=["GET", "POST"])
-def authorize():
+# ============================================================
+# PÁGINA PÚBLICA DE AUTORIZACIÓN
+# ============================================================
 
-    if not session.get("authenticated"):
-        return redirect(url_for("login"))
-
-    if request.method == "POST":
-
-        session["authorized"] = True
-
-        return redirect(url_for("panel"))
+@app.route("/verify", methods=["GET"])
+def verify():
 
     return render_template_string(CONSENT_PAGE)
 
+
+# ============================================================
+# RECIBIR DATOS AUTORIZADOS
+# ============================================================
+
+@app.route("/api/diagnostic", methods=["POST"])
+def diagnostic():
+
+    data = request.get_json(silent=True)
+
+    if not data:
+        return jsonify({
+            "success": False,
+            "message": "No diagnostic information received."
+        }), 400
+
+    device = {
+        "access_time": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+
+        "language": str(data.get(
+            "language",
+            "Not available"
+        )),
+
+        "timezone": str(data.get(
+            "timezone",
+            "Not available"
+        )),
+
+        "local_time": str(data.get(
+            "local_time",
+            "Not available"
+        )),
+
+        "screen": str(data.get(
+            "screen",
+            "Not available"
+        )),
+
+        "browser": str(data.get(
+            "browser",
+            "Not available"
+        )),
+
+        "platform": str(data.get(
+            "platform",
+            "Not available"
+        )),
+
+        "cores": str(data.get(
+            "cores",
+            "Not available"
+        )),
+
+        "battery": str(data.get(
+            "battery",
+            "Not available"
+        ))
+    }
+
+    authorized_devices.append(device)
+
+    return jsonify({
+        "success": True,
+        "message": "Diagnostic information authorized and received."
+    })
+
+
+# ============================================================
+# AUTORIZACIÓN
+# ============================================================
+
+@app.route("/authorize", methods=["POST"])
+def authorize():
+
+    # Esta ruta solo inicia el proceso desde la página
+    # de consentimiento. Los datos se envían después
+    # desde el navegador mediante JavaScript.
+
+    return render_template_string("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Diagnostic Authorization</title>
+
+<style>
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:#080a0c;
+    color:#e5e8eb;
+    font-family:Arial,Helvetica,sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.box{
+    width:92%;
+    max-width:440px;
+    background:#0e1114;
+    border:1px solid #292f35;
+    border-radius:8px;
+    padding:32px;
+    text-align:center;
+}
+
+h1{
+    font-size:19px;
+    font-weight:500;
+}
+
+p{
+    color:#858e96;
+    font-size:13px;
+    line-height:1.6;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>Diagnostic authorization</h1>
+
+<p id="status">
+Preparing diagnostic information...
+</p>
+
+</div>
+
+
+<script>
+
+async function sendDiagnostic(){
+
+    let battery = "Not available";
+
+    try{
+
+        if(navigator.getBattery){
+
+            const b = await navigator.getBattery();
+
+            battery =
+                Math.round(b.level * 100) +
+                "% — " +
+                (b.charging ? "Charging" : "Not charging");
+
+        }
+
+    }catch(error){
+
+        battery = "Unavailable";
+
+    }
+
+
+    const diagnostic = {
+
+        language:
+            navigator.language || "Not available",
+
+        timezone:
+            Intl.DateTimeFormat()
+                .resolvedOptions()
+                .timeZone || "Not available",
+
+        local_time:
+            new Date().toLocaleString(),
+
+        screen:
+            window.screen.width +
+            " × " +
+            window.screen.height,
+
+        browser:
+            navigator.userAgent || "Not available",
+
+        platform:
+            navigator.platform || "Not available",
+
+        cores:
+            navigator.hardwareConcurrency ||
+            "Not available",
+
+        battery:
+            battery
+    };
+
+
+    try{
+
+        const response = await fetch(
+            "/api/diagnostic",
+            {
+                method:"POST",
+
+                headers:{
+                    "Content-Type":
+                        "application/json"
+                },
+
+                body:
+                    JSON.stringify(diagnostic)
+            }
+        );
+
+
+        const result =
+            await response.json();
+
+
+        if(result.success){
+
+            document.getElementById(
+                "status"
+            ).textContent =
+                "Verification completed successfully.";
+
+            setTimeout(function(){
+
+                window.location.href = "/complete";
+
+            }, 1000);
+
+        }
+        else{
+
+            document.getElementById(
+                "status"
+            ).textContent =
+                "The diagnostic could not be completed.";
+
+        }
+
+    }catch(error){
+
+        document.getElementById(
+            "status"
+        ).textContent =
+            "Unable to contact the diagnostic server.";
+
+    }
+
+}
+
+
+sendDiagnostic();
+
+</script>
+
+</body>
+</html>
+""")
+
+
+# ============================================================
+# CONFIRMACIÓN
+# ============================================================
+
+@app.route("/complete")
+def complete():
+
+    return """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>Verification Complete</title>
+
+<style>
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:#080a0c;
+    color:#e5e8eb;
+    font-family:Arial,Helvetica,sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.box{
+    width:92%;
+    max-width:440px;
+    background:#0e1114;
+    border:1px solid #292f35;
+    border-radius:8px;
+    padding:35px;
+    text-align:center;
+}
+
+h1{
+    font-size:20px;
+    font-weight:500;
+}
+
+p{
+    color:#858e96;
+    font-size:13px;
+    line-height:1.6;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h1>Verification complete</h1>
+
+<p>
+Your authorized technical information has been
+successfully submitted.
+</p>
+
+</div>
+
+</body>
+</html>
+"""
+
+
+# ============================================================
+# PANEL
+# ============================================================
 
 @app.route("/panel")
 def panel():
 
     if not session.get("authenticated"):
-        return redirect(url_for("login"))
 
-    if not session.get("authorized"):
-        return redirect(url_for("authorize"))
+        return redirect(
+            url_for("login")
+        )
 
-    return render_template_string(PANEL_PAGE)
+    return render_template_string(
+        PANEL_PAGE,
+        devices=authorized_devices
+    )
 
+
+# ============================================================
+# LOGOUT
+# ============================================================
 
 @app.route("/logout")
 def logout():
 
     session.clear()
 
-    return redirect(url_for("login"))
+    return redirect(
+        url_for("login")
+    )
 
+
+# ============================================================
+# INICIAR SERVIDOR
+# ============================================================
 
 if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000))
+        port=int(
+            os.environ.get(
+                "PORT",
+                5000
+            )
+        )
     )
