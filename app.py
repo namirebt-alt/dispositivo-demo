@@ -1,4 +1,4 @@
-from flask import Flask, request, session, redirect, url_for, render_template_string
+from flask import Flask, request, session, redirect, url_for, render_template_string, jsonify
 import os
 from datetime import datetime
 
@@ -20,202 +20,243 @@ LOGIN_PAGE = """
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Device Service</title>
 
 <style>
+*{box-sizing:border-box}
 
-* {
-    box-sizing: border-box;
+body{
+    margin:0;
+    min-height:100vh;
+    background:#080a0c;
+    color:#e5e8eb;
+    font-family:Arial,Helvetica,sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }
 
-body {
-    margin: 0;
-    min-height: 100vh;
-    background:
-        radial-gradient(circle at 50% 35%, #15191d 0%, #090b0d 45%, #050607 100%);
-    color: #e7eaed;
-    font-family: Arial, Helvetica, sans-serif;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.box{
+    width:92%;
+    max-width:440px;
+    background:#0e1114;
+    border:1px solid #292f35;
+    border-radius:8px;
+    padding:34px;
+    box-shadow:0 25px 70px rgba(0,0,0,.5);
 }
 
-.login-wrapper {
-    width: 92%;
-    max-width: 430px;
+.brand{
+    text-align:center;
+    color:#aeb6bd;
+    letter-spacing:3px;
+    font-size:13px;
+    margin-bottom:30px;
 }
 
-.brand {
-    text-align: center;
-    margin-bottom: 28px;
+h1{
+    font-size:16px;
+    font-weight:500;
+    margin-bottom:24px;
 }
 
-.brand-title {
-    font-size: 13px;
-    letter-spacing: 4px;
-    color: #9da5ad;
-    margin-bottom: 10px;
+label{
+    display:block;
+    color:#737c84;
+    font-size:10px;
+    letter-spacing:1.5px;
+    margin-bottom:8px;
 }
 
-.brand-subtitle {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: #596169;
+input{
+    width:100%;
+    padding:14px;
+    background:#080a0c;
+    border:1px solid #343a40;
+    border-radius:5px;
+    color:white;
+    outline:none;
 }
 
-.login-card {
-    background: rgba(15, 18, 21, 0.96);
-    border: 1px solid #2a3036;
-    border-radius: 8px;
-    padding: 34px;
-    box-shadow:
-        0 25px 70px rgba(0,0,0,.55),
-        inset 0 1px rgba(255,255,255,.025);
+button{
+    width:100%;
+    margin-top:18px;
+    padding:13px;
+    border:0;
+    border-radius:5px;
+    background:#e6e9eb;
+    color:#101214;
+    font-weight:bold;
+    cursor:pointer;
 }
 
-.card-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 28px;
-}
+button:hover{background:white}
 
-.status-light {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #7fd49a;
-    box-shadow: 0 0 10px rgba(127,212,154,.35);
+.error{
+    margin-top:15px;
+    color:#d98a8a;
+    font-size:12px;
+    text-align:center;
 }
-
-.card-title {
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 1px;
-}
-
-label {
-    display: block;
-    color: #858d95;
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    margin-bottom: 9px;
-}
-
-input {
-    width: 100%;
-    background: #090b0d;
-    border: 1px solid #30363c;
-    border-radius: 5px;
-    padding: 14px;
-    color: #e8ebee;
-    outline: none;
-    font-size: 14px;
-    transition: .2s;
-}
-
-input:focus {
-    border-color: #707981;
-    box-shadow: 0 0 0 3px rgba(255,255,255,.025);
-}
-
-button {
-    width: 100%;
-    margin-top: 18px;
-    padding: 13px;
-    border: 1px solid #4a5259;
-    border-radius: 5px;
-    background: #e8ebee;
-    color: #101214;
-    font-weight: 600;
-    letter-spacing: 1px;
-    cursor: pointer;
-    transition: .2s;
-}
-
-button:hover {
-    background: #ffffff;
-}
-
-.error {
-    margin-top: 16px;
-    padding: 10px;
-    border: 1px solid #573333;
-    background: #1b1010;
-    color: #d98a8a;
-    border-radius: 4px;
-    font-size: 12px;
-    text-align: center;
-}
-
-.footer {
-    text-align: center;
-    margin-top: 22px;
-    color: #4f565d;
-    font-size: 10px;
-    letter-spacing: 1px;
-}
-
 </style>
 </head>
 
 <body>
 
-<div class="login-wrapper">
+<div class="box">
 
-    <div class="brand">
-        <div class="brand-title">
-            DEVICE SERVICE
-        </div>
+<div class="brand">DEVICE SERVICE</div>
 
-        <div class="brand-subtitle">
-            SYSTEM DIAGNOSTICS PLATFORM
-        </div>
-    </div>
+<h1>SERVICE ACCESS</h1>
 
-    <div class="login-card">
+<form method="POST">
 
-        <div class="card-header">
-            <div class="status-light"></div>
+<label>ENTER ACCESS KEY</label>
 
-            <div class="card-title">
-                SERVICE ACCESS
-            </div>
-        </div>
+<input
+    type="password"
+    name="key"
+    placeholder="Access key"
+    autocomplete="off"
+    autofocus
+    required
+>
 
-        <form method="POST">
+<button type="submit">CONTINUE</button>
 
-            <label>ENTER ACCESS KEY</label>
+</form>
 
-            <input
-                type="password"
-                name="key"
-                placeholder="Access key"
-                autocomplete="off"
-                autofocus
-                required
-            >
+{% if error %}
+<div class="error">ACCESS DENIED — INVALID KEY</div>
+{% endif %}
 
-            <button type="submit">
-                CONTINUE
-            </button>
+</div>
 
-        </form>
+</body>
+</html>
+"""
 
-        {% if error %}
-        <div class="error">
-            ACCESS DENIED — INVALID KEY
-        </div>
-        {% endif %}
 
-    </div>
+CONSENT_PAGE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Diagnostic Authorization</title>
 
-    <div class="footer">
-        AUTHORIZED SERVICE ENVIRONMENT
-    </div>
+<style>
+*{box-sizing:border-box}
+
+body{
+    margin:0;
+    min-height:100vh;
+    background:#080a0c;
+    color:#e5e8eb;
+    font-family:Arial,Helvetica,sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.box{
+    width:92%;
+    max-width:560px;
+    background:#0e1114;
+    border:1px solid #292f35;
+    border-radius:8px;
+    padding:32px;
+}
+
+.top{
+    color:#8b959d;
+    font-size:10px;
+    letter-spacing:2px;
+    margin-bottom:12px;
+}
+
+h1{
+    font-size:21px;
+    font-weight:500;
+    margin:0 0 15px;
+}
+
+p{
+    color:#858e96;
+    line-height:1.6;
+    font-size:13px;
+}
+
+.list{
+    margin:22px 0;
+    border-top:1px solid #242a2f;
+    border-bottom:1px solid #242a2f;
+}
+
+.item{
+    padding:13px 0;
+    border-bottom:1px solid #1c2125;
+    font-size:13px;
+}
+
+.item:last-child{border-bottom:0}
+
+button{
+    width:100%;
+    padding:13px;
+    border:0;
+    border-radius:5px;
+    background:#e6e9eb;
+    color:#101214;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.cancel{
+    display:block;
+    text-align:center;
+    margin-top:15px;
+    color:#69727a;
+    font-size:11px;
+    text-decoration:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<div class="top">DEVICE SERVICE / AUTHORIZATION</div>
+
+<h1>Diagnostic information access</h1>
+
+<p>
+This diagnostic session can display information provided by your browser.
+Please review the information before continuing.
+</p>
+
+<div class="list">
+
+<div class="item">• Browser language</div>
+<div class="item">• Time zone and local time</div>
+<div class="item">• Screen resolution</div>
+<div class="item">• Browser and device information</div>
+<div class="item">• Battery level, when supported by your browser</div>
+
+</div>
+
+<p>
+No email address is collected automatically. You may close this page
+at any time.
+</p>
+
+<form method="POST" action="/authorize">
+<button type="submit">ALLOW DIAGNOSTIC INFORMATION</button>
+</form>
+
+<a class="cancel" href="/logout">CANCEL AND EXIT</a>
 
 </div>
 
@@ -229,538 +270,400 @@ PANEL_PAGE = """
 <html lang="en">
 
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>Device Service Panel</title>
+<title>Device Diagnostics</title>
 
 <style>
+*{box-sizing:border-box}
 
-* {
-    box-sizing: border-box;
+body{
+    margin:0;
+    background:#080a0c;
+    color:#e5e8eb;
+    font-family:Arial,Helvetica,sans-serif;
 }
 
-body {
-    margin: 0;
-    background: #080a0c;
-    color: #e5e8eb;
-    font-family: Arial, Helvetica, sans-serif;
+header{
+    height:68px;
+    background:#0d1013;
+    border-bottom:1px solid #252a2f;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 30px;
 }
 
-/* HEADER */
-
-header {
-    height: 68px;
-    background: #0d1013;
-    border-bottom: 1px solid #252a2f;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 0 32px;
+.logo{
+    font-size:13px;
+    letter-spacing:2px;
 }
 
-.logo-area {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+.right{
+    display:flex;
+    align-items:center;
+    gap:20px;
 }
 
-.logo-box {
-    width: 30px;
-    height: 30px;
-
-    border: 1px solid #555d64;
-    border-radius: 5px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    color: #cbd0d4;
-    font-size: 13px;
+.ready{
+    color:#82c998;
+    font-size:10px;
+    letter-spacing:1px;
 }
 
-.logo-text {
-    font-size: 13px;
-    letter-spacing: 2px;
-    font-weight: 600;
+.logout{
+    color:#aeb5bb;
+    text-decoration:none;
+    border:1px solid #30363c;
+    padding:8px 13px;
+    border-radius:4px;
+    font-size:10px;
 }
 
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 20px;
+.container{
+    width:92%;
+    max-width:1200px;
+    margin:35px auto;
 }
 
-.connection {
-    color: #89929a;
-    font-size: 11px;
-    letter-spacing: 1px;
+h1{
+    font-size:24px;
+    font-weight:500;
+    margin-bottom:7px;
 }
 
-.connection span {
-    color: #82c998;
+.subtitle{
+    color:#707980;
+    font-size:12px;
+    margin-bottom:28px;
 }
 
-.logout {
-    text-decoration: none;
-    color: #aeb5bb;
-    border: 1px solid #30363c;
-    border-radius: 4px;
-    padding: 8px 13px;
-    font-size: 10px;
-    letter-spacing: 1px;
+.grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
 }
 
-.logout:hover {
-    background: #171b1f;
+.card{
+    background:#0e1114;
+    border:1px solid #242a2f;
+    border-radius:7px;
+    padding:22px;
 }
 
-/* MAIN */
-
-.container {
-    width: 92%;
-    max-width: 1200px;
-    margin: 38px auto;
+.large{
+    grid-column:span 2;
 }
 
-/* PAGE TITLE */
-
-.page-title {
-    margin-bottom: 28px;
+.full{
+    grid-column:1/-1;
 }
 
-.page-title h1 {
-    margin: 0 0 8px;
-    font-size: 24px;
-    font-weight: 500;
+.title{
+    color:#737c84;
+    font-size:10px;
+    letter-spacing:1.8px;
+    margin-bottom:18px;
 }
 
-.page-title p {
-    margin: 0;
-    color: #707980;
-    font-size: 12px;
+.device{
+    font-size:22px;
+    margin-bottom:8px;
 }
 
-/* GRID */
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+.muted{
+    color:#69727a;
+    font-size:11px;
 }
 
-.card {
-    background: #0e1114;
-    border: 1px solid #242a2f;
-    border-radius: 7px;
-    padding: 22px;
+.row{
+    display:flex;
+    justify-content:space-between;
+    padding:12px 0;
+    border-bottom:1px solid #1d2226;
+    font-size:12px;
 }
 
-.card-title {
-    color: #737c84;
-    font-size: 10px;
-    letter-spacing: 1.8px;
-    margin-bottom: 18px;
+.row:last-child{
+    border-bottom:0;
 }
 
-/* DEVICE CARD */
-
-.device-card {
-    grid-column: span 2;
+.label{
+    color:#6f787f;
 }
 
-.device-name {
-    font-size: 22px;
-    font-weight: 500;
-    margin-bottom: 8px;
+.value{
+    color:#d0d5d9;
+    text-align:right;
+    max-width:60%;
+    word-break:break-word;
 }
 
-.device-id {
-    color: #606970;
-    font-size: 11px;
-    letter-spacing: 1px;
+.good{
+    color:#82c998;
 }
 
-/* STATUS */
-
-.status-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+.log{
+    font-family:"Courier New",monospace;
+    color:#707980;
+    font-size:11px;
+    line-height:2;
 }
 
-.status {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+@media(max-width:800px){
+    .grid{grid-template-columns:1fr}
+    .large,.full{grid-column:span 1}
+    header{padding:0 18px}
+    .ready{display:none}
 }
-
-.status-dot {
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: #82c998;
-    box-shadow: 0 0 12px rgba(130,201,152,.25);
-}
-
-.status-text {
-    color: #9bc7a8;
-    font-size: 13px;
-}
-
-/* INFORMATION */
-
-.info-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-}
-
-.info-item label {
-    display: block;
-    color: #626a72;
-    font-size: 9px;
-    letter-spacing: 1.5px;
-    margin-bottom: 7px;
-}
-
-.info-item div {
-    color: #d0d5d9;
-    font-size: 13px;
-}
-
-/* DIAGNOSTICS */
-
-.diagnostic-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.diagnostic {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    padding-bottom: 12px;
-    border-bottom: 1px solid #1c2125;
-}
-
-.diagnostic:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.diagnostic-name {
-    color: #9ca4ab;
-    font-size: 12px;
-}
-
-.diagnostic-result {
-    color: #82c998;
-    font-size: 10px;
-    letter-spacing: 1px;
-}
-
-/* PROGRESS */
-
-.progress {
-    height: 5px;
-    background: #1d2226;
-    border-radius: 10px;
-    overflow: hidden;
-    margin-top: 18px;
-}
-
-.progress-bar {
-    height: 100%;
-    width: 100%;
-    background: #7e898f;
-}
-
-/* LOG */
-
-.log {
-    font-family: "Courier New", monospace;
-    font-size: 11px;
-    line-height: 2;
-    color: #6f787f;
-}
-
-.log .ok {
-    color: #87a992;
-}
-
-/* FULL WIDTH */
-
-.full {
-    grid-column: 1 / -1;
-}
-
-/* RESPONSIVE */
-
-@media (max-width: 800px) {
-
-    header {
-        padding: 0 18px;
-    }
-
-    .connection {
-        display: none;
-    }
-
-    .container {
-        width: 94%;
-        margin: 25px auto;
-    }
-
-    .grid {
-        grid-template-columns: 1fr;
-    }
-
-    .device-card,
-    .full {
-        grid-column: span 1;
-    }
-
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-
-}
-
 </style>
-
 </head>
 
 <body>
 
 <header>
 
-    <div class="logo-area">
+<div class="logo">DEVICE SERVICE</div>
 
-        <div class="logo-box">
-            DS
-        </div>
-
-        <div class="logo-text">
-            DEVICE SERVICE
-        </div>
-
-    </div>
-
-    <div class="header-right">
-
-        <div class="connection">
-            SYSTEM STATUS:
-            <span>READY</span>
-        </div>
-
-        <a class="logout" href="/logout">
-            LOG OUT
-        </a>
-
-    </div>
+<div class="right">
+<div class="ready">● AUTHORIZED SESSION</div>
+<a class="logout" href="/logout">LOG OUT</a>
+</div>
 
 </header>
 
-
 <div class="container">
 
-    <div class="page-title">
+<h1>System Diagnostics</h1>
 
-        <h1>System Diagnostics</h1>
+<div class="subtitle">
+Authorized device diagnostic environment
+</div>
 
-        <p>
-            Authorized device service and diagnostic environment
-        </p>
+<div class="grid">
 
-    </div>
+<div class="card large">
 
+<div class="title">DEVICE OVERVIEW</div>
 
-    <div class="grid">
+<div class="device" id="deviceType">
+Detecting device...
+</div>
 
-
-        <!-- DEVICE -->
-
-        <div class="card device-card">
-
-            <div class="card-title">
-                DEVICE
-            </div>
-
-            <div class="device-name">
-                Demo Device
-            </div>
-
-            <div class="device-id">
-                DEVICE ID / DEMO-DEVICE-001
-            </div>
-
-        </div>
-
-
-        <!-- STATUS -->
-
-        <div class="card status-card">
-
-            <div class="card-title">
-                SERVICE STATUS
-            </div>
-
-            <div class="status">
-
-                <div class="status-dot"></div>
-
-                <div class="status-text">
-                    Device ready
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- SYSTEM INFORMATION -->
-
-        <div class="card device-card">
-
-            <div class="card-title">
-                SYSTEM INFORMATION
-            </div>
-
-            <div class="info-grid">
-
-                <div class="info-item">
-                    <label>OPERATING SYSTEM</label>
-                    <div>Demo Operating System</div>
-                </div>
-
-                <div class="info-item">
-                    <label>DEVICE TYPE</label>
-                    <div>Diagnostic Demo Unit</div>
-                </div>
-
-                <div class="info-item">
-                    <label>SERVICE MODE</label>
-                    <div>Authorized</div>
-                </div>
-
-                <div class="info-item">
-                    <label>SESSION</label>
-                    <div>Active</div>
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- DIAGNOSTICS -->
-
-        <div class="card">
-
-            <div class="card-title">
-                DIAGNOSTIC CHECK
-            </div>
-
-            <div class="diagnostic-list">
-
-                <div class="diagnostic">
-                    <div class="diagnostic-name">
-                        System integrity
-                    </div>
-
-                    <div class="diagnostic-result">
-                        PASSED
-                    </div>
-                </div>
-
-                <div class="diagnostic">
-                    <div class="diagnostic-name">
-                        Storage check
-                    </div>
-
-                    <div class="diagnostic-result">
-                        PASSED
-                    </div>
-                </div>
-
-                <div class="diagnostic">
-                    <div class="diagnostic-name">
-                        Service environment
-                    </div>
-
-                    <div class="diagnostic-result">
-                        READY
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- SERVICE PROGRESS -->
-
-        <div class="card">
-
-            <div class="card-title">
-                SERVICE READINESS
-            </div>
-
-            <div style="font-size:24px;">
-                100%
-            </div>
-
-            <div class="progress">
-                <div class="progress-bar"></div>
-            </div>
-
-        </div>
-
-
-        <!-- LOG -->
-
-        <div class="card full">
-
-            <div class="card-title">
-                SERVICE LOG
-            </div>
-
-            <div class="log">
-
-                <div>
-                    <span class="ok">OK</span>
-                    — Diagnostic environment initialized
-                </div>
-
-                <div>
-                    <span class="ok">OK</span>
-                    — Authorization verified
-                </div>
-
-                <div>
-                    <span class="ok">OK</span>
-                    — Demo device recognized
-                </div>
-
-                <div>
-                    <span class="ok">OK</span>
-                    — System ready for authorized service
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
+<div class="muted" id="platform">
+Reading browser information...
+</div>
 
 </div>
+
+
+<div class="card">
+
+<div class="title">SESSION</div>
+
+<div class="row">
+<div class="label">STATUS</div>
+<div class="value good">AUTHORIZED</div>
+</div>
+
+<div class="row">
+<div class="label">ACCESS TIME</div>
+<div class="value" id="accessTime">—</div>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="title">SYSTEM</div>
+
+<div class="row">
+<div class="label">LANGUAGE</div>
+<div class="value" id="language">—</div>
+</div>
+
+<div class="row">
+<div class="label">TIME ZONE</div>
+<div class="value" id="timezone">—</div>
+</div>
+
+<div class="row">
+<div class="label">SCREEN</div>
+<div class="value" id="screen">—</div>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="title">BATTERY</div>
+
+<div class="row">
+<div class="label">STATUS</div>
+<div class="value" id="batteryStatus">Checking...</div>
+</div>
+
+<div class="row">
+<div class="label">LEVEL</div>
+<div class="value" id="batteryLevel">—</div>
+</div>
+
+</div>
+
+
+<div class="card large">
+
+<div class="title">BROWSER ENVIRONMENT</div>
+
+<div class="row">
+<div class="label">BROWSER</div>
+<div class="value" id="browser">—</div>
+</div>
+
+<div class="row">
+<div class="label">PLATFORM</div>
+<div class="value" id="platformFull">—</div>
+</div>
+
+<div class="row">
+<div class="label">CORES</div>
+<div class="value" id="cores">—</div>
+</div>
+
+</div>
+
+
+<div class="card full">
+
+<div class="title">SERVICE LOG</div>
+
+<div class="log" id="log">
+
+<div>OK — Authorization confirmed</div>
+<div>OK — Diagnostic session initialized</div>
+<div>OK — Browser information received</div>
+<div>OK — System status ready</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+function detectDevice(){
+
+    const ua = navigator.userAgent.toLowerCase();
+
+    let type = "Desktop / Unknown";
+
+    if (/android/.test(ua)){
+        type = "Android Device";
+    }
+    else if (/iphone|ipad|ipod/.test(ua)){
+        type = "Apple Mobile Device";
+    }
+    else if (/windows/.test(ua)){
+        type = "Windows Computer";
+    }
+    else if (/macintosh|mac os/.test(ua)){
+        type = "Mac Computer";
+    }
+    else if (/linux/.test(ua)){
+        type = "Linux Computer";
+    }
+
+    document.getElementById("deviceType").textContent = type;
+
+    document.getElementById("platform").textContent =
+        navigator.platform || "Not available";
+
+    document.getElementById("platformFull").textContent =
+        navigator.platform || "Not available";
+
+    document.getElementById("browser").textContent =
+        navigator.userAgent;
+
+    document.getElementById("cores").textContent =
+        navigator.hardwareConcurrency
+        ? navigator.hardwareConcurrency
+        : "Not available";
+}
+
+
+function systemInfo(){
+
+    document.getElementById("language").textContent =
+        navigator.language || "Not available";
+
+    document.getElementById("timezone").textContent =
+        Intl.DateTimeFormat().resolvedOptions().timeZone
+        || "Not available";
+
+    document.getElementById("screen").textContent =
+        window.screen.width + " × " + window.screen.height;
+
+    document.getElementById("accessTime").textContent =
+        new Date().toLocaleString();
+
+}
+
+
+async function batteryInfo(){
+
+    const status =
+        document.getElementById("batteryStatus");
+
+    const level =
+        document.getElementById("batteryLevel");
+
+    if (!navigator.getBattery){
+
+        status.textContent =
+            "Not supported";
+
+        level.textContent =
+            "Not available";
+
+        return;
+    }
+
+    try{
+
+        const battery =
+            await navigator.getBattery();
+
+        status.textContent =
+            battery.charging
+            ? "Charging"
+            : "Not charging";
+
+        level.textContent =
+            Math.round(battery.level * 100) + "%";
+
+    }catch(error){
+
+        status.textContent =
+            "Unavailable";
+
+        level.textContent =
+            "Not available";
+    }
+}
+
+
+detectDevice();
+systemInfo();
+batteryInfo();
+
+</script>
 
 </body>
 </html>
@@ -771,7 +674,10 @@ header {
 def login():
 
     if session.get("authenticated"):
-        return redirect(url_for("panel"))
+        if session.get("authorized"):
+            return redirect(url_for("panel"))
+
+        return redirect(url_for("authorize"))
 
     error = False
 
@@ -782,8 +688,9 @@ def login():
         if entered_key == ACCESS_KEY:
 
             session["authenticated"] = True
+            session["authorized"] = False
 
-            return redirect(url_for("panel"))
+            return redirect(url_for("authorize"))
 
         error = True
 
@@ -793,11 +700,29 @@ def login():
     )
 
 
+@app.route("/authorize", methods=["GET", "POST"])
+def authorize():
+
+    if not session.get("authenticated"):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        session["authorized"] = True
+
+        return redirect(url_for("panel"))
+
+    return render_template_string(CONSENT_PAGE)
+
+
 @app.route("/panel")
 def panel():
 
     if not session.get("authenticated"):
         return redirect(url_for("login"))
+
+    if not session.get("authorized"):
+        return redirect(url_for("authorize"))
 
     return render_template_string(PANEL_PAGE)
 
